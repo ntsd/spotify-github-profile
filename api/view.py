@@ -55,7 +55,7 @@ def load_image_b64(url):
 
 
 @functools.lru_cache(maxsize=128)
-def make_svg(artist_name, song_name, img, is_now_playing, cover_image):
+def make_svg(artist_name, song_name, img, is_now_playing, cover_image, preview_url):
 
     print("make_svg")
 
@@ -81,6 +81,7 @@ def make_svg(artist_name, song_name, img, is_now_playing, cover_image):
         "song_name": song_name,
         "img": img,
         "cover_image": cover_image,
+        "preview_url": preview_url,
     }
 
     return render_template("spotify.html.j2", **rendered_data)
@@ -101,6 +102,7 @@ def catch_all(path):
 
     uid = request.args.get("uid")
     cover_image = request.args.get("cover_image", default='true') == 'true'
+    preview_song = request.args.get("preview_song", default='false') == 'true'
 
     # Load token from cache memory
     token_info = get_cache_token_info(uid)
@@ -163,13 +165,13 @@ def catch_all(path):
         is_now_playing = False
 
     img = ""
-    if cover_image:
-        img = load_image_b64(item["album"]["images"][1]["url"])
+    img = load_image_b64(item["album"]["images"][1]["url"]) if cover_image else ""
+    preview_url = item["preview_url"] if preview_song else ""
 
     artist_name = item["artists"][0]["name"].replace("&", "&amp;")
     song_name = item["name"].replace("&", "&amp;")
 
-    svg = make_svg(artist_name, song_name, img, is_now_playing, cover_image)
+    svg = make_svg(artist_name, song_name, img, is_now_playing, cover_image, preview_url)
 
     resp = Response(svg, mimetype="image/svg+xml")
     resp.headers["Cache-Control"] = "s-maxage=1"
